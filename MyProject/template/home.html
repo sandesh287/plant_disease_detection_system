@@ -1,44 +1,46 @@
 {% extends "base.html" %}
 {% block content %}
 
-
-
-
+<main class="landing-page">
     <!-- Offer Box Slider Section -->
-<div id="offerBox" class="carousel slide" data-bs-ride="carousel">
-    <div class="carousel-inner">
-        {% for plant in plants %}
-            <div class="carousel-item {% if forloop.first %} active {% endif %}">
-                <div class="d-flex">
-                    <!-- Offer Box Image -->
-                    <div class="box-image">
-                        <img src="{{ plant.image_url }}" alt="{{ plant.plant_name }}" class="d-block w-100">
-                    </div>
+    <section id="offerBox" class="carousel slide hero-carousel" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            {% for plant in plants %}
+                <div class="carousel-item {% if forloop.first %} active {% endif %}">
+                    <div class="hero-slide">
+                        <!-- Offer Box Image -->
+                        <div class="box-image">
+                            <img src="{{ plant.image_url }}" alt="{{ plant.plant_name }}" class="d-block w-100">
+                        </div>
 
-                    <!-- Offer Box Text -->
-                    <div id="box-text">
-                        <h3>{{ plant.plant_name }}</h3> <!-- Plant name -->
-                        <p>{{ plant.facts }}</p> <!-- Plant facts -->
+                        <!-- Offer Box Text -->
+                        <div id="box-text">
+                            <p class="eyebrow">Plant insight</p>
+                            <h3>{{ plant.plant_name }}</h3>
+                            <p>{{ plant.facts }}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        {% endfor %}
-    </div>
-    <!-- Carousel Controls -->
-    <button class="carousel-control-prev" type="button" data-bs-target="#offerBox" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Previous</span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#offerBox" data-bs-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Next</span>
-    </button>
-</div>
+            {% endfor %}
+        </div>
 
-<br>
-<div>
-        <span>Plants</span>
-        <div class="row">
+        <!-- Carousel Controls -->
+        <button class="carousel-control-prev" type="button" data-bs-target="#offerBox" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#offerBox" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </section>
+
+    <section class="page-section">
+        <div class="section-heading">
+            <span>Plants</span>
+        </div>
+
+        <div class="row plant-grid">
             <!-- Product 1 -->
             <div class="col-md">
                 <img class="thumbnail" src="/static/img/apple.jpg" alt="Apple">
@@ -48,7 +50,7 @@
                     <a class="btn btn-success" href='{% url "test" %}'>Check Disease</a>
                 </div>
             </div>
-    
+
             <!-- Product 2 -->
             <div class="col-md">
                 <img class="thumbnail" src="/static/img/tomato.jpg" alt="Tomato">
@@ -58,7 +60,7 @@
                     <a class="btn btn-success" href='{% url "test" %}'>Check Disease</a>
                 </div>
             </div>
-    
+
             <!-- Product 3 -->
             <div class="col-md">
                 <img class="thumbnail" src="/static/img/corn.jpg" alt="Corn">
@@ -68,7 +70,7 @@
                     <a class="btn btn-success" href='{% url "test" %}'>Check Disease</a>
                 </div>
             </div>
-    
+
             <!-- Product 4 -->
             <div class="col-md">
                 <img class="thumbnail" src="/static/img/grapes.jpg" alt="Grapes">
@@ -79,40 +81,45 @@
                 </div>
             </div>
         </div>
-        <div>
-            <span>About Us </span>
-            <div class="row">
-                <!-- Person q 1 -->
-                <div class="col-md">
-                    <img class="person" src="/static/aboutus/asmita timalsina.jpg" alt="Apple">
-                    <div class="box-element p-intro">
-                        <h6><strong>Ashmita Timalsina</strong></h6>
-                        <hr>
-                       <p>Student at Academia Int'l College | Data Science Enthusiasts</p>
-                    </div>
-                </div>
-        
-                <!-- Product 2 -->
-                <div class="col-md">
-                    <img class="person" src="/static/aboutus/anjal.jpg" alt="Tomato">
-                    <div class="box-element p-intro">
-                        <h6><strong>Anjal Ghimire</strong></h6>
-                        <hr>
-                        <p>Student at Academia Int'l College | Data Science Enthusiasts</p>
-                    </div>
-                </div>
-        
-                <!-- Product 3 -->
-                <div class="col-md">
-                    <img class="person" src="/static/aboutus/ruth.jpg" alt="Corn">
-                    <div class="box-element p-intro">
-                        <h6><strong>Ruth Ghising</strong></h6>
-                        <hr>
-                        <p>Student at Academia Int'l College | Python Developer</p>
-                    </div>
+    </section>
+
+    <section class="page-section team-section">
+        <div class="section-heading">
+            <span>About Us</span>
+        </div>
+
+        <div class="row team-grid">
+            <!-- Person q 1 -->
+            <div class="col-md">
+                <img class="person" src="/static/aboutus/asmita timalsina.jpg" alt="Ashmita Timalsina">
+                <div class="box-element p-intro">
+                    <h6><strong>Ashmita Timalsina</strong></h6>
+                    <hr>
+                    <p>Student at Academia Int'l College | Data Science Enthusiasts</p>
                 </div>
             </div>
-    
-   
- 
+
+            <!-- Product 2 -->
+            <div class="col-md">
+                <img class="person" src="/static/aboutus/anjal.jpg" alt="Anjal Ghimire">
+                <div class="box-element p-intro">
+                    <h6><strong>Anjal Ghimire</strong></h6>
+                    <hr>
+                    <p>Student at Academia Int'l College | Data Science Enthusiasts</p>
+                </div>
+            </div>
+
+            <!-- Product 3 -->
+            <div class="col-md">
+                <img class="person" src="/static/aboutus/ruth.jpg" alt="Ruth Ghising">
+                <div class="box-element p-intro">
+                    <h6><strong>Ruth Ghising</strong></h6>
+                    <hr>
+                    <p>Student at Academia Int'l College | Python Developer</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
 {% endblock %}

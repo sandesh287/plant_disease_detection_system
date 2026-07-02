@@ -117,13 +117,15 @@ def handle_uploaded_file(f):
     file_extension=os.path.splitext(f.name)[1].lower()
     if file_extension not in ALLOWED_IMAGE_FORMATS:
         raise ValidationError(f"Unsupported file format.Please upload an image in {','.join(ALLOWED_IMAGE_FORMATS)} format.")
-    #save the file if its a valid format
-    file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', f.name)
-    
-    with open(file_path, 'wb+') as destination:
-        for chunk in f.chunks():
-            destination.write(chunk)
-    return file_path
+
+    upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    storage = FileSystemStorage(location=upload_dir, base_url=f"{settings.MEDIA_URL}uploads/")
+    saved_name = storage.save(f.name, f)
+    file_path = storage.path(saved_name)
+    file_url = storage.url(saved_name)
+    return file_path, file_url
 
 #Test View
 def test(request):
@@ -134,7 +136,7 @@ def test(request):
             uploaded_image = request.FILES["image"]
 
             try:
-                file_path = handle_uploaded_file(uploaded_image)  # Save the uploaded image
+                file_path, uploaded_image_url = handle_uploaded_file(uploaded_image)  # Save the uploaded image
 
             # Make a prediction using the image
                 predicted_class = predict(file_path)
@@ -175,6 +177,7 @@ def test(request):
                 "full_info": full_info if is_authenticated else None,
                 "is_authenticated": is_authenticated,
                 "error":error,
+                "uploaded_image_url": uploaded_image_url,
             })
             except ValidationError as e:
                 # Handle validation error for invalid file format

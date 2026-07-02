@@ -1,135 +1,60 @@
 {% extends "base.html" %}
 
-
-
 {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Disease Prediction</title>
-    <style>
-        /* Your existing CSS */
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #8fa4b8;
-        }
-        .container {
-            width: 100%;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-        }
-        .upload-box {
-            width: 100%;
-            max-width: 400px;
-            padding: 30px;
-            border: 2px solid #60ae60;
-            border-radius: 15px;
-            text-align: center;
-            margin: 0 auto;
-            background-color: #ffffff;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        }
-        .upload-box h3 {
-            margin-bottom: 15px;
-            color: #333;
-            font-weight: bold;
-        }
-        .upload-box p {
-            color: #666;
-        }
-        .custom-button {
-            padding: 12px 25px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            margin-top: 10px;
-            font-size: 16px;
-        }
-        .custom-button:hover {
-            background-color: #0056b3;
-        }
-        .detect-section {
-            margin-top: 30px;
-            text-align: center;
-            padding: 20px;
-            background-color: #e9f5ff;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-        .detect-section h4 {
-            color: #3fbb83;
-            font-weight: bold;
-        }
-        .blurred {
-            filter: blur(5px);
-            transition: filter 1s ease;
-        }
-        .authenticated .blurred {
-            filter: none;
-        }
-    </style>
-</head>
-<body>
-   
-    <div class="container">
-        <div class="upload-box">
-            <h3>Upload an Image for Prediction</h3>
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                <label for="fileInput" class="custom-button">
-                    <input type="file" name="image" id="fileInput" required>
-                </label>
-                <button type="submit" class="custom-button">Detect</button>
-            </form>
-        </div>
-        
- 
+<main class="app-page test-page">
+    <section class="upload-box">
+        <p class="eyebrow dark">Disease detection</p>
+        <h3>Upload an Image for Prediction</h3>
+        <form method="post" enctype="multipart/form-data" class="prediction-form">
+            {% csrf_token %}
+            <input type="file" name="image" id="fileInput" accept=".jpg,.jpeg,.png" required>
+            <button type="submit" class="custom-button">Detect</button>
+        </form>
+    </section>
+
     {% if error %}
-        <div class="detect-section">
-      
-          
-            <p style="color: red; font-size:20px">{{ error }}</p>
-        
-    </div>
-    {% elif predicted_class %}  
-        <div class="detect-section">
-            <h4>Predicted Class: {{ predicted_class }}</h4>
-
-            <h2> Information</h2>
-            <p><strong>Name:</strong> {{ partial_info.disease_name }}</p>
-            <p><strong>Description:</strong> {{ partial_info.description }}</p>
-
-            <!-- Full Information (Blurred until logged in) -->
-            <div id="disease-details" class="{% if not is_authenticated %}blurred{% endif %}">
-                <p><strong>Prevention:</strong></p>
-                <ul>
-                    {% for item in full_info.prevention %}
-                        <li>{{ item }}</li>
-                    {% endfor %}
-                </ul>
-
-                <p><strong>Treatment:</strong></p>
-                <ul>
-                    {% for item in full_info.treatment %}
-                        <li>{{ item }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-
-            {% if not is_authenticated %}
-            <p>Please <a href="{% url 'login' %}">log in</a>  to view full information.</p>
+        <section class="detect-section">
+            <p class="error-message">{{ error }}</p>
+        </section>
+    {% elif predicted_class %}
+        <section class="detect-section result-layout">
+            {% if uploaded_image_url %}
+                <div class="result-image-card">
+                    <p class="result-label">Test Image</p>
+                    <img src="{{ uploaded_image_url }}" alt="Uploaded plant leaf image" class="result-image">
+                </div>
             {% endif %}
-        </div>
-        {% endif %}
-    </div>
 
-    
-</body>
+            <div class="result-info-card">
+                <p class="eyebrow dark">Prediction result</p>
+                <h4>Predicted Class: {{ predicted_class }}</h4>
 
-</html>
+                <h2>Information</h2>
+                <p><strong>Name:</strong> {{ partial_info.disease_name }}</p>
+                <p><strong>Description:</strong> {{ partial_info.description }}</p>
+
+                <!-- Full Information (Blurred until logged in) -->
+                <div id="disease-details" class="{% if not is_authenticated %}blurred{% endif %}">
+                    <p><strong>Prevention:</strong></p>
+                    <ul>
+                        {% for item in full_info.prevention %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    <p><strong>Treatment:</strong></p>
+                    <ul>
+                        {% for item in full_info.treatment %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                {% if not is_authenticated %}
+                    <p class="login-note">Please <a href="{% url 'login' %}">log in</a> to view full information.</p>
+                {% endif %}
+            </div>
+        </section>
+    {% endif %}
+</main>
 {% endblock %}

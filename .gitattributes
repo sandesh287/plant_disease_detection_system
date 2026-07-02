@@ -10,3 +10,5 @@ tf_2_15_env/Lib/site-packages/tensorflow/python/*.lib filter=lfs diff=lfs merge=
 =======
 MyProject/myapp/models/rf_fix_model.pkl filter=lfs diff=lfs merge=lfs -text
 >>>>>>> d3ad71db99d5001a4a13950c648f52cae6206c59
+*.pkl filter=lfs diff=lfs merge=lfs -text
+*.h5 filter=lfs diff=lfs merge=lfs -text

@@ -9,7 +9,15 @@ import urllib.parse
 # Load environment variables from the .env file
 load_dotenv()
 
+_client = None
+_db = None
+
 def get_db():
+    global _client, _db
+
+    if _db is not None:
+        return _db
+
     # Fetch the raw MongoDB username and password from the environment
     username = os.getenv("MONGO_USERNAME")
     password = os.getenv("MONGO_PASSWORD")
@@ -23,26 +31,22 @@ def get_db():
     encoded_password = urllib.parse.quote_plus(password.encode('utf-8'))
 
     # Construct the MongoDB URI with the encoded credentials
-    mongo_uri = f"mongodb+srv://{encoded_username}:{encoded_password}@project-1.ourfx.mongodb.net/Project_Database?retryWrites=true&w=majority"
-    
-    # Debug: Print out the value of the MongoDB URI
-    print(f"MongoDB URI loaded: {mongo_uri}")
+    mongo_uri = f"mongodb+srv://{encoded_username}:{encoded_password}@plantdiseasedetection.cbmhnmm.mongodb.net/?appName=PlantDiseaseDetection"
 
     if not mongo_uri:
         raise ValueError("MongoDB URI is not set in the .env file")
 
     # Connect to MongoDB using the constructed URI
-    client = MongoClient(mongo_uri)
+    _client = MongoClient(mongo_uri)
     
     # Assuming you're using the 'Project_Database'
-    db = client.get_database("Project_Database")
+    _db = _client.get_database("Project_Database")
     
-    return db
+    return _db
 
 # Get the MongoDB connection and perform any action
 try:
     db = get_db()
-    print("MongoDB connection established successfully!")
 except Exception as e:
     print(f"Error: {e}")
 

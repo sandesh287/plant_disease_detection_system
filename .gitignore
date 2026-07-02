@@ -1,3 +1,26 @@
 .env
 myenv
 
+/venv
+./venv
+../venv
+venv
+MyProject/venv
+MyProject/.env
+
+
+# Environment and virtual environments
+.env
+MyProject/.env
+venv/
+MyProject/venv/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# Runtime uploads
+MyProject/media/uploads/
+
+# Django local database
+MyProject/db.sqlite3

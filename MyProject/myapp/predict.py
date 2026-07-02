@@ -1,11 +1,13 @@
-import tensorflow as tf
 import os
+
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+
+import tensorflow as tf
 import numpy as np
 import joblib
-import tensorflow as tf
-from keras.preprocessing import image
-from tensorflow.keras.preprocessing import image  # Correct import
-import numpy as np
+from tensorflow.keras.preprocessing import image
+
+tf.get_logger().setLevel("ERROR")
 
 
 # Paths to the saved models
@@ -34,7 +36,7 @@ def preprocess_image(img_path):
 
 def extract_features(img):
     """Extract features using the CNN model."""
-    features = feature_extractor.predict(img)
+    features = feature_extractor.predict(img, verbose=0)
     features = features.reshape(features.shape[0], -1)
     return features
 
@@ -43,15 +45,11 @@ def predict(file_path):
     img_array = preprocess_image(file_path)
     features = extract_features(img_array)
     prediction = rf_model.predict(features)
-    
-    # Check the prediction output shape, it should be a single value (index)
-    print(f"Prediction raw output: {prediction}")
-    
+
     # If the prediction is in 2D, access the scalar value
     predicted_class_idx = prediction[0] if prediction.ndim == 1 else prediction[0][0]
 
     # Map the prediction index to class name
     predicted_class = class_names[predicted_class_idx]
 
-    print(f"Predicted class: {predicted_class}")  # Debugging output
     return predicted_class

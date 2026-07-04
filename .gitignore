@@ -24,3 +24,5 @@ MyProject/media/uploads/
 
 # Django local database
 MyProject/db.sqlite3
+
+.vscode

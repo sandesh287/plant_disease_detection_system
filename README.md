@@ -271,8 +271,3 @@ Plant-Disease-Detection-System/
     `-- media/
 ```
 
-## Team Members
-
-- Ashmita Timalsina - https://github.com/Ashmita1555
-- Ruth Ghising - https://github.com/RuthTmg
-- Anjal Ghimire

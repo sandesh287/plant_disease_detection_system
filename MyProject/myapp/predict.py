@@ -5,9 +5,38 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 import tensorflow as tf
 import numpy as np
 import joblib
-from tensorflow.keras.preprocessing import image
+from keras.preprocessing import image
 
 tf.get_logger().setLevel("ERROR")
+
+# Pre-trainer ImageNet model for general object classification
+plant_classifier = tf.keras.applications.MobileNetV2(weights="imagenet")
+
+# Broad set of plant and agricultural categories recognized by ImageNet
+PLANT_KEYWORDS = {
+    'plant', 'leaf', 'tree', 'flower', 'rose', 'daisy', 'tulip', 'orchid', 
+    'sunflower', 'cardoon', 'zucchini', 'squash', 'cucumber', 'artichoke', 
+    'cabbage', 'broccoli', 'cauliflower', 'mushroom', 'fungus', 'lemon', 
+    'orange', 'banana', 'apple', 'strawberry', 'pineapple', 'corn', 'ear',
+    'potatoes', 'fig', 'pomegranate', 'hay', 'grass', 'pot', 'houseplant',
+    'veggie', 'vegetable'
+}
+
+def is_plant_image(file_path):
+    """Backend helper function: Validates whether the image contains a plant."""
+    img = image.load_img(file_path, target_size=(224, 224))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
+
+    preds = plant_classifier.predict(img_array, verbose=0)
+    decoded = tf.keras.applications.mobilenet_v2.decode_predictions(preds, top=5)[0]
+
+    for _, label, score in decoded:
+        label_lower = label.lower()
+        if any(keyword in label_lower for keyword in PLANT_KEYWORDS) and score > 0.08:
+            return True
+    return False
 
 
 # Paths to the saved models

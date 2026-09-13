@@ -2,121 +2,105 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from werkzeug.security import generate_password_hash, check_password_hash
 from .db import get_db
-from .predict import predict
+from .predict import predict, is_plant_image
 import os
 from django.conf import settings
 import uuid
 from django import forms
 from .models import *
-from django.shortcuts import render, redirect
-from werkzeug.security import generate_password_hash,check_password_hash
 from django.core.exceptions import ValidationError
 from bson import ObjectId
 from django.core.files.storage import FileSystemStorage
+from gridfs import GridFS
+from django.http import HttpResponse
+from .forms import ProfileUpdateForm
 
 db = get_db()
 
 def home(request):
-    return render(request, 'home.html')
+    plant_data = db.plant_info
+    plants = plant_data.find()
+    return render(request, 'home.html', {'plants': plants})
 
 def about(request):
     return render(request, 'about.html')
 
-# Signup view
+# Backend: Signup view
 def signup(request):
     if request.method == "POST":
         full_name = request.POST.get("name")
         email = request.POST.get("email")
         password = request.POST.get("password1")
         confirm_password = request.POST.get("password2")
-        phone=request.POST.get("phone")
-        gender = request.POST.get("gender")  # Capture gender
+        phone = request.POST.get("phone")
+        gender = request.POST.get("gender")
         location = request.POST.get("address")
 
-
-        # Validate passwords
         if password != confirm_password:
             messages.error(request, "Passwords do not match!")
             return render(request, 'signup.html')
 
-        # Hash the password
         hashed_password = generate_password_hash(password)
         
-        # Check if email exists
         if db.user.find_one({'email': email}):
             messages.error(request, "Email already exists!")
             return render(request, 'signup.html')
         
-        
-        # Insert user data into MongoDB
         db.user.insert_one({
             'full_name': full_name,
             'email': email,
             'password': hashed_password,
-            'phone':phone,
+            'phone': phone,
             'role': 'user',
-            'gender':gender,
-            'location':location,
+            'gender': gender,
+            'location': location,
         })
         
-    
         messages.success(request, "Signup successful! Please log in.")
         return redirect('login')
 
     return render(request, 'signup.html')
 
-# Login View
-
-
+# Backend: Login View
 def login(request):
     if request.method == "POST":
         email = request.POST.get('email')
         password = request.POST.get('password')
 
-        # Connect to MongoDB and verify the user
         db = get_db()
         user = db.user.find_one({"email": email})
         
-        if user and check_password_hash(user["password"], password):  # Implement password hashing for production
-            # Generate a token and set it in the cookies
-            auth_token = str(uuid.uuid4())  # Generate a unique token for the session
+        if user and check_password_hash(user["password"], password):
+            auth_token = str(uuid.uuid4())
             db.user.update_one({"email": email}, {"$set": {"auth_token": auth_token}})
 
-            # Set the token in the cookie for future authentication
-            response = redirect('test')  # Default redirection for regular users
+            response = redirect('test')
             response.set_cookie('auth_token', auth_token)
 
-            # Check if the user is an admin and redirect accordingly
             if user.get('role') == 'admin':
-                response = redirect('admin')  # Redirect to admin panel if user is admin
+                response = redirect('admin')
                 response.set_cookie('auth_token', auth_token)
                 
             return response
         else:
             messages.error(request, "Invalid credentials")
-            return render(request, "login.html")  # Adjust this to your login template
+            return render(request, "login.html")
     else:
         return render(request, "login.html")
 
-
-
-#Logout View
+# Backend: Logout View
 def logout(request):
-    # Clear the auth_token from the cookies
-    response = redirect('login')  # Redirect to the login page after logout
-    response.delete_cookie('auth_token')  # Remove token from cookies
-
+    response = redirect('login')
+    response.delete_cookie('auth_token')
     messages.success(request, "Logged out successfully!")
     return response
 
+ALLOWED_IMAGE_FORMATS = ['.jpg', '.jpeg', '.png']
 
-
-ALLOWED_IMAGE_FORMATS=['.jpg','.jpeg','.png']
-# Handle uploaded files
 def handle_uploaded_file(f):
-    file_extension=os.path.splitext(f.name)[1].lower()
+    file_extension = os.path.splitext(f.name)[1].lower()
     if file_extension not in ALLOWED_IMAGE_FORMATS:
-        raise ValidationError(f"Unsupported file format.Please upload an image in {','.join(ALLOWED_IMAGE_FORMATS)} format.")
+        raise ValidationError(f"Unsupported file format. Please upload an image in {','.join(ALLOWED_IMAGE_FORMATS)} format.")
 
     upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
     os.makedirs(upload_dir, exist_ok=True)
@@ -127,117 +111,81 @@ def handle_uploaded_file(f):
     file_url = storage.url(saved_name)
     return file_path, file_url
 
-#Test View
+# Backend: Main Detection and Validation View
 def test(request):
     is_authenticated = request.COOKIES.get('auth_token') is not None
-    error =None
+    error = None
+    
     if request.method == "POST":
         if "image" in request.FILES:
             uploaded_image = request.FILES["image"]
 
             try:
-                file_path, uploaded_image_url = handle_uploaded_file(uploaded_image)  # Save the uploaded image
+                file_path, uploaded_image_url = handle_uploaded_file(uploaded_image)
 
-            # Make a prediction using the image
+                # Backend Validation Step: Check if uploaded file is actually a plant
+                if not is_plant_image(file_path):
+                    raise ValidationError("The uploaded image is not recognized as a plant or leaf. Please upload a clear plant image.")
+
+                # Proceed to Disease Detection
                 predicted_class = predict(file_path)
 
-            # Fetch disease info based on predicted class
-              
                 if predicted_class.lower() == "healthy":
-                    # Fetch information for healthy plants
                     disease_info = db["disease_data"].find_one({"disease_name": "Healthy"})
                 else:
-                    # Fetch disease info based on the predicted class
                     disease_info = db["disease_data"].find_one({"disease_name": predicted_class})
 
-        
-            # If no information is found, handle gracefully
                 if not disease_info:
-                    partial_info = "No information available for this disease."
+                    partial_info = {"disease_name": predicted_class, "description": "No detailed information available for this disease."}
                     full_info = None
                 else:
-                # Prepare partial and full information
                     partial_info = {
-                    "disease_name": disease_info.get("disease_name", "Unknown disease"),
-                    "description": disease_info.get("description", "Description not available."),
-                }
-
+                        "disease_name": disease_info.get("disease_name", "Unknown disease"),
+                        "description": disease_info.get("description", "Description not available."),
+                    }
                     full_info = {
-                    "disease_name": disease_info.get("disease_name", "Unknown disease"),
-                    "description": disease_info.get("description", "Description not available."),
-                    "prevention": disease_info.get("prevention", "Prevention information not available."),
-                    "treatment": disease_info.get("treatment", "Treatment information not available."),
-                }
-               
+                        "disease_name": disease_info.get("disease_name", "Unknown disease"),
+                        "description": disease_info.get("description", "Description not available."),
+                        "prevention": disease_info.get("prevention", "Prevention information not available."),
+                        "treatment": disease_info.get("treatment", "Treatment information not available."),
+                    }
 
                 return render(request, "test.html", {
-                
-                "predicted_class": predicted_class,
-                "partial_info": partial_info,
-                "full_info": full_info if is_authenticated else None,
-                "is_authenticated": is_authenticated,
-                "error":error,
-                "uploaded_image_url": uploaded_image_url,
-            })
+                    "predicted_class": predicted_class,
+                    "partial_info": partial_info,
+                    "full_info": full_info if is_authenticated else None,
+                    "is_authenticated": is_authenticated,
+                    "error": error,
+                    "uploaded_image_url": uploaded_image_url,
+                })
+
             except ValidationError as e:
-                # Handle validation error for invalid file format
                 error = e.message if isinstance(e.message, str) else e.message[0]
                 return render(request, "test.html", {"error": error, "is_authenticated": is_authenticated})
             
             except Exception as e:
-                # Handle any other unexpected errors
                 error = f"An unexpected error occurred: {str(e)}"
                 return render(request, "test.html", {"error": error, "is_authenticated": is_authenticated})
 
-    # Default render for GET requests
-    return render(request, "test.html", {"is_authenticated": False})
+    return render(request, "test.html", {"is_authenticated": is_authenticated})
 
-def home(request):
-    plant_data = db.plant_info
-
-    # Fetch all plant data
-    plants = plant_data.find()
-
-    # Pass the plant data to the template
-    return render(request, 'home.html', {'plants': plants})
-
-
-
-
-
-
-# Admin Dashboard
-
-
-
-
-# Admin Dashboard
-
-
-from .forms import ProfileUpdateForm
-
-# View to display the user's profile
+# Backend: Profile Views
 def profile(request):
     if not request.mongo_user:
-        # Handle case where user is not authenticated
         return redirect('login')
 
     db = get_db()
-
-    # Fetch the user data from the user collection
     user_data = db.user.find_one({"_id": ObjectId(request.mongo_user['_id'])})
 
-    # Fetch additional user details like full_name, gender, location, etc.
     if user_data:
         full_name = user_data.get("full_name", "")
         email = user_data.get("email", "")
         phone = user_data.get("phone", "")
-        gender = user_data.get("gender", "")  # Assuming the field is 'gender'
-        location = user_data.get("location", "")  # Assuming the field is 'location'
+        gender = user_data.get("gender", "")
+        location = user_data.get("location", "")
     else:
         full_name = email = phone = gender = location = ""
 
-    # Fetch any profile details from the profile_details collection
     profile_data = db.profile_details.find_one({"user_id": ObjectId(request.mongo_user['_id'])})
 
     return render(request, 'profile.html', {
@@ -250,21 +198,12 @@ def profile(request):
         'location': location
     })
 
-# View to update the user's profile
-# views.py
-from gridfs import GridFS
-from django.core.files.storage import default_storage
-from bson import ObjectId
-from django.shortcuts import redirect
-from django.http import HttpResponse
-from .forms import ProfileUpdateForm
-
 def update_profile(request):
     if not request.mongo_user:
         return redirect('login')
 
     db = get_db()
-    fs = GridFS(db)  # Initialize GridFS
+    fs = GridFS(db)
     user_data = db.user.find_one({"_id": request.mongo_user['_id']})
     profile_data = db.profile_details.find_one({"user_id": request.mongo_user['_id']})
 
@@ -273,13 +212,11 @@ def update_profile(request):
         if form.is_valid():
             updated_data = form.cleaned_data
             
-            # If a profile picture is uploaded, save it to GridFS
             if 'profile_picture' in request.FILES:
                 profile_picture = request.FILES['profile_picture']
-                file_id = fs.put(profile_picture)  # Store file in GridFS
-                updated_data['profile_picture'] = file_id  # Store file_id in the database
+                file_id = fs.put(profile_picture)
+                updated_data['profile_picture'] = file_id
 
-            # Store or update profile data
             if profile_data:
                 db.profile_details.update_one(
                     {"user_id": request.mongo_user['_id']},
@@ -299,16 +236,10 @@ def update_profile(request):
 
     return render(request, 'update_profile.html', {'form': form, 'user_data': user_data})
 
-from django.http import HttpResponse
-from gridfs import GridFS
-from django.shortcuts import get_object_or_404
-
 def view_image(request, file_id):
     db = get_db()
     fs = GridFS(db)
-
-    # Retrieve the image by its file_id
-    file = fs.get(ObjectId(file_id))  # Use ObjectId to fetch the file from GridFS
+    file = fs.get(ObjectId(file_id))
     response = HttpResponse(file.read(), content_type='image/jpeg')
     response['Content-Disposition'] = f'inline; filename="{file.filename}"'
     return response

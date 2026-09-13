@@ -113,6 +113,10 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
+```powershell
+python -m pip install -r requirements.txt
+```
+
 If TensorFlow installation fails, first confirm that your virtual environment is using Python 3.10:
 
 ```powershell

@@ -1,4 +1,3 @@
-from pymongo import MongoClient
 from werkzeug.security import generate_password_hash
 from django.conf import settings
 import os
@@ -11,6 +10,7 @@ load_dotenv()
 
 _client = None
 _db = None
+_seeded = False
 
 def get_db():
     global _client, _db
@@ -44,20 +44,6 @@ def get_db():
     
     return _db
 
-# Get the MongoDB connection and perform any action
-try:
-    db = get_db()
-except Exception as e:
-    print(f"Error: {e}")
-
-    
-
-
-db=get_db()
-# Step 3: Access the 'disease_data' collection (will be created if it doesn't exist)
-disease_collection = db.disease_data
-
-# Step 4: Define disease information to insert
 disease_data = [
     
   {
@@ -367,14 +353,6 @@ disease_data = [
 ]
 
 # Step 5: Insert data into the 'disease_info' collection
-for disease in disease_data:
-    # Check if the disease already exists in the database
-    if not disease_collection.find_one({"disease_name": disease["disease_name"]}):
-        # Insert the disease data if not found
-        disease_collection.insert_one(disease)
-
-    
-plant_data=db.plant_info
 plant_info=[
   
   {
@@ -398,11 +376,25 @@ plant_info=[
     "image_url": "/static/img/tomato.jpg"
   }
 ]
-for plant in plant_info:
-    # Check if the disease already exists in the database
-    if not plant_data.find_one({"plant_name": plant["plant_name"]}):
-        # Insert the disease data if not found
-        plant_data.insert_one(plant)
+def seed_initial_data():
+    global _seeded
+
+    if _seeded:
+        return
+
+    db = get_db()
+    disease_collection = db.disease_data
+    plant_data = db.plant_info
+
+    for disease in disease_data:
+        if not disease_collection.find_one({"disease_name": disease["disease_name"]}):
+            disease_collection.insert_one(disease)
+
+    for plant in plant_info:
+        if not plant_data.find_one({"plant_name": plant["plant_name"]}):
+            plant_data.insert_one(plant)
+
+    _seeded = True
 
 
         

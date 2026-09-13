@@ -13,8 +13,17 @@
     </section>
 
     {% if error %}
-        <section class="detect-section">
-            <p class="error-message">{{ error }}</p>
+        <section class="detect-section result-layout">
+            {% if uploaded_image_url %}
+                <div class="result-image-card">
+                    <p class="result-label">Test Image</p>
+                    <img src="{{ uploaded_image_url }}" alt="Uploaded image for validation" class="result-image">
+                </div>
+            {% endif %}
+            <div class="result-info-card">
+                <p class="eyebrow dark">Validation result</p>
+                <p class="error-message">{{ error }}</p>
+            </div>
         </section>
     {% elif predicted_class %}
         <section class="detect-section result-layout">

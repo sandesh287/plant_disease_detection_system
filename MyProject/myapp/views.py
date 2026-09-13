@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from werkzeug.security import generate_password_hash, check_password_hash
-from .db import get_db
-from .predict import predict, is_plant_image
+from .db import get_db, seed_initial_data
+from .predict import predict, get_plant_classification
 import os
 from django.conf import settings
 import uuid
@@ -15,9 +15,9 @@ from gridfs import GridFS
 from django.http import HttpResponse
 from .forms import ProfileUpdateForm
 
-db = get_db()
-
 def home(request):
+    seed_initial_data()
+    db = get_db()
     plant_data = db.plant_info
     plants = plant_data.find()
     return render(request, 'home.html', {'plants': plants})
@@ -28,6 +28,7 @@ def about(request):
 # Backend: Signup view
 def signup(request):
     if request.method == "POST":
+        db = get_db()
         full_name = request.POST.get("name")
         email = request.POST.get("email")
         password = request.POST.get("password1")
@@ -115,6 +116,7 @@ def handle_uploaded_file(f):
 def test(request):
     is_authenticated = request.COOKIES.get('auth_token') is not None
     error = None
+    uploaded_image_url = None
     
     if request.method == "POST":
         if "image" in request.FILES:
@@ -124,11 +126,14 @@ def test(request):
                 file_path, uploaded_image_url = handle_uploaded_file(uploaded_image)
 
                 # Backend Validation Step: Check if uploaded file is actually a plant
-                if not is_plant_image(file_path):
+                plant_check = get_plant_classification(file_path)
+                if not plant_check["is_plant"]:
                     raise ValidationError("The uploaded image is not recognized as a plant or leaf. Please upload a clear plant image.")
 
                 # Proceed to Disease Detection
                 predicted_class = predict(file_path)
+                seed_initial_data()
+                db = get_db()
 
                 if predicted_class.lower() == "healthy":
                     disease_info = db["disease_data"].find_one({"disease_name": "Healthy"})
@@ -161,11 +166,19 @@ def test(request):
 
             except ValidationError as e:
                 error = e.message if isinstance(e.message, str) else e.message[0]
-                return render(request, "test.html", {"error": error, "is_authenticated": is_authenticated})
+                return render(request, "test.html", {
+                    "error": error,
+                    "is_authenticated": is_authenticated,
+                    "uploaded_image_url": uploaded_image_url,
+                })
             
             except Exception as e:
                 error = f"An unexpected error occurred: {str(e)}"
-                return render(request, "test.html", {"error": error, "is_authenticated": is_authenticated})
+                return render(request, "test.html", {
+                    "error": error,
+                    "is_authenticated": is_authenticated,
+                    "uploaded_image_url": uploaded_image_url,
+                })
 
     return render(request, "test.html", {"is_authenticated": is_authenticated})
 
